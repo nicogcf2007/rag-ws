@@ -1,0 +1,22 @@
+chromadb
+openai
+python-dotenv
+langchain_community
+langchain_text_splitters
+pypdf
+scipy
+numpy
+fastapi
+uvicorn
+python-multipart
+pytesseract
+pdf2image
+python-docx
+openpyxl
+unstructured
+networkx
+
+# Nota: pdf2image requiere Poppler para funcionar correctamente
+# En Windows: Descargar desde https://github.com/oschwartz10612/poppler-windows/releases
+# En Linux: sudo apt-get install poppler-utils
+# En macOS: brew install poppler
