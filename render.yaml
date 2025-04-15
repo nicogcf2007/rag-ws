@@ -14,20 +14,14 @@ services:
     name: rag-frontend
     runtime: static
     buildCommand: cd frontend && npm install && npm run build
-    staticPublishPath: ./frontend/dist
+    staticPublishPath: build
     envVars:
       - key: NODE_VERSION
         value: 18
-      - key: VITE_BACKEND_URL
-        fromService:
-          name: rtm-transcriptions-backend
-          type: web
-          property: host
       - key: REACT_APP_API_URL # El prefijo REACT_APP_ es importante para CRA
         fromService:
           type: web                 # Tipo del servicio backend
           name: mi-rag-backend      # Nombre del servicio backend (¡debe coincidir!)
-          property: url             # Obtiene la URL base (https://<nombre>.onrender.com)
+          property: host             # Obtiene la URL base (https://<nombre>.onrender.com)
       - key: REACT_APP_WS_URL
         value: "wss://mi-rag-backend.onrender.com" # ¡REEMPLAZA con tu URL real después!
-        sync: false
