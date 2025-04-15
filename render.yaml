@@ -7,7 +7,6 @@ services:
     runtime: python     # Especifica el runtime (en lugar de 'env')
     rootDir: backend    # Directorio raíz del código backend (¡Asegúrate que sea correcto!)
     plan: free          # O el plan que prefieras
-    pythonVersion: "3.11" # O la versión que uses
     buildCommand: "pip install --upgrade pip && pip install -r requirements.txt"
     startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT --ws-ping-interval 20 --ws-ping-timeout 20"
     healthCheckPath: /health # ¡Recuerda crear este endpoint en main.py!
