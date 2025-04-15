@@ -1,57 +1,71 @@
-# render.yaml - Blueprint para desplegar Frontend (React) y Backend (FastAPI) en Render
+# render.yaml - Blueprint Corregido para Desplegar Frontend (React) y Backend (FastAPI)
 
 services:
   # --- Servicio Backend (FastAPI API + WebSockets) ---
-  - type: web         # Tipo de servicio: Web Service para ejecutar código de servidor
-    name: mi-rag-backend # Nombre único para este servicio en Render
-    env: python       # Entorno de ejecución
-    rootDir: backend  # Directorio raíz del código backend
-    plan: free        # Plan de Render (puedes elegir 'starter' o superior para más recursos)
-    pythonVersion: "3.11" # Especifica la versión de Python
-    buildCommand: "pip install --upgrade pip && pip install -r requirements.txt" # Comando para instalar dependencias
-    startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT --ws-ping-interval 20 --ws-ping-timeout 20" # Comando para iniciar el servidor ASGI
-      # --host 0.0.0.0 es crucial para Render
-      # --port $PORT es obligatorio, Render asigna el puerto dinámicamente
-      # --ws-ping-interval/timeout pueden ayudar a mantener viva la conexión WS en entornos inactivos
-    healthCheckPath: /health # Ruta para que Render verifique si el servicio está vivo (¡DEBES CREAR ESTE ENDPOINT EN TU main.py!)
+  - type: web
+    name: mi-rag-backend # Puedes cambiarle el nombre si quieres
+    runtime: python     # Especifica el runtime (en lugar de 'env')
+    rootDir: backend    # Directorio raíz del código backend (¡Asegúrate que sea correcto!)
+    plan: free          # O el plan que prefieras
+    pythonVersion: "3.11" # O la versión que uses
+    buildCommand: "pip install --upgrade pip && pip install -r requirements.txt"
+    startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT --ws-ping-interval 20 --ws-ping-timeout 20"
+    healthCheckPath: /health # ¡Recuerda crear este endpoint en main.py!
     envVars:
-      - key: PYTHON_VERSION # Render usa esta variable también
+      - key: PYTHON_VERSION # Buena práctica incluirlo
         value: "3.11"
-      # --- ¡IMPORTANTE! Configura CORS adecuadamente en tu backend ---
-      # Necesitarás permitir el origen de tu frontend desplegado.
-      # Puedes usar una variable de entorno aquí y leerla en tu configuración CORS de FastAPI.
-      # Ejemplo (pon la URL real de tu frontend en Render después del primer despliegue):
+      # --- Variable para CORS (¡NECESITA CONFIGURACIÓN MANUAL POST-DEPLOY!) ---
+      # Render no puede inyectar automáticamente la URL del frontend aquí.
+      # Debes ir al Dashboard de Render -> servicio 'mi-rag-backend' -> Environment
+      # y establecer esta variable con la URL real del frontend desplegado
+      # (ej: https://mi-rag-frontend.onrender.com) DESPUÉS del primer despliegue.
       - key: FRONTEND_URL
-        value: "https://mi-rag-frontend.onrender.com" # ¡REEMPLAZA ESTO con la URL real! O usa '*' para pruebas (menos seguro)
-      # - key: DATABASE_URL # Si usas una base de datos de Render (ej. PostgreSQL)
-      #   fromDatabase:
-      #     name: mi-rag-db # Nombre del servicio de base de datos definido abajo
-      #     property: connectionString
-      # - key: OLLAMA_HOST # Si necesitas configurar dónde está Ollama u otro servicio
-      #   value: "http://otra-maquina:11434" # O la URL de otro servicio de Render
+        sync: false # No sincronizar desde el grupo de entorno, se pondrá manualmente.
+      # - key: TU_API_KEY_SECRETA # Ejemplo si tuvieras claves
+      #   sync: false             # sync: false para que no se muestre en PRs/logs
 
   # --- Servicio Frontend (React App Estática) ---
-  - type: staticSite    # Tipo de servicio: Sitio Estático para servir archivos pre-construidos
-    name: mi-rag-frontend # Nombre único para este servicio
-    env: static         # Entorno estático (no ejecuta código de servidor)
-    rootDir: frontend   # Directorio raíz del código frontend
-    buildCommand: "npm install && npm run build" # Comando para construir el frontend
-      # Si usas yarn: "yarn install && yarn build"
-    publishDir: build   # Directorio donde se encuentran los archivos construidos (común para CRA)
-      # Si usas Vite, podría ser "dist"
-    # --- ¡IMPORTANTE! Pasar la URL del backend al frontend ---
-    # Los sitios estáticos se construyen ANTES de que la URL final del backend esté fija.
-    # La mejor forma es configurar estas variables en el Dashboard de Render
-    # para el servicio 'mi-rag-frontend' DESPUÉS del primer despliegue.
-    # El frontend debe leer estas variables de entorno (ej. process.env.REACT_APP_API_URL).
-    # Asegúrate de que tu código React esté configurado para leerlas (prefijo REACT_APP_ para CRA).
+  - type: web           # <--- CAMBIO: Usa 'web' como tipo
+    name: mi-rag-frontend # Puedes cambiarle el nombre si quieres
+    runtime: static     # <--- CAMBIO: Especifica 'static' como runtime
+    rootDir: frontend   # Directorio raíz del código frontend (¡Asegúrate que sea correcto!)
+    plan: free          # O el plan que prefieras
+    buildCommand: "npm install && npm run build" # Comando de build dentro de rootDir
+    # staticPublishPath: ./build # <--- CAMBIO: Usa staticPublishPath. La ruta es relativa a rootDir.
+                                  # Si tu build sale en 'frontend/build', solo pones 'build'.
+                                  # Si usas Vite y sale en 'frontend/dist', pones 'dist'.
+    staticPublishPath: build # Asume que la salida está en 'frontend/build/'
     envVars:
-      - key: REACT_APP_API_URL # Variable para la URL base de la API HTTP
-        value: "https://mi-rag-backend.onrender.com" # ¡REEMPLAZA ESTO con la URL real del backend en Render!
-      - key: REACT_APP_WS_URL # Variable para la URL base de WebSocket
-        value: "wss://mi-rag-backend.onrender.com" # ¡REEMPLAZA ESTO con la URL real del backend en Render (usando wss://)!
-    # Opcional: Reglas de reescritura/redirección si usas React Router
+      - key: NODE_VERSION # Buena práctica especificar versión de Node para el build
+        value: "18"     # O la versión LTS que prefieras (16, 18, 20...)
+
+      # --- Variables para conectar con el Backend ---
+      # Usamos 'fromService' para obtener la URL base HTTP del backend dinámicamente
+      - key: REACT_APP_API_URL # El prefijo REACT_APP_ es importante para CRA
+        fromService:
+          type: web                 # Tipo del servicio backend
+          name: mi-rag-backend      # Nombre del servicio backend (¡debe coincidir!)
+          property: url             # Obtiene la URL base (https://<nombre>.onrender.com)
+
+      # Para la URL WebSocket (WSS), 'fromService' no da directamente wss://.
+      # La forma más segura es configurarla manualmente después del despliegue inicial,
+      # pero podemos intentar construirla o poner un placeholder.
+      # Opción 1: Placeholder (requiere configuración manual post-deploy)
+      - key: REACT_APP_WS_URL
+        value: "wss://mi-rag-backend.onrender.com" # ¡REEMPLAZA con tu URL real después!
+        sync: false
+      # Opción 2 (Experimental - puede no funcionar si el build necesita la URL exacta):
+      # - key: REACT_APP_WS_URL
+      #   value: ${mi-rag-backend.url/https/wss} # Intenta reemplazar https con wss (puede fallar)
+
+    # Reglas de reescritura para React Router (si lo usas)
     routes:
       - type: rewrite
         source: /*
         destination: /index.html
+
+# --- (Opcional) Base de Datos ---
+# databases:
+#   - name: mi-rag-db
+#     plan: free
+#     # ... resto de la configuración ...
