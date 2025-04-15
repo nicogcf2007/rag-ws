@@ -18,10 +18,10 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 18
-      - key: REACT_APP_API_URL # El prefijo REACT_APP_ es importante para CRA
+      - key: REACT_APP_API_URL
         fromService:
-          type: web                 # Tipo del servicio backend
-          name: mi-rag-backend      # Nombre del servicio backend (¡debe coincidir!)
-          property: host             # Obtiene la URL base (https://<nombre>.onrender.com)
+          type: web                 
+          name: mi-rag-backend      
+          property: host             
       - key: REACT_APP_WS_URL
         value: "wss://mi-rag-backend.onrender.com" # ¡REEMPLAZA con tu URL real después!

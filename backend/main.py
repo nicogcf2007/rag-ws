@@ -45,13 +45,37 @@ DATA_PATH = "data"
 EMBEDDINGS_PATH = "embeddings_db"
 
 # Configurar CORS (Mantener como estaba)
+local_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+# 2. Obtén la URL del frontend desplegado desde la variable de entorno
+#    Usa el mismo nombre de variable que definiste en render.yaml para el backend ('FRONTEND_URL')
+deployed_frontend_url = os.environ.get("FRONTEND_URL") # Retorna None si no está definida
+
+# 3. Construye la lista final de orígenes permitidos
+allowed_origins = local_origins
+if deployed_frontend_url:
+    print(f"INFO: Adding deployed frontend URL to CORS origins: {deployed_frontend_url}")
+    allowed_origins.append(deployed_frontend_url)
+else:
+    # Opcional: Imprime un aviso si la variable no está configurada en producción
+    # Puedes ajustar esta lógica si necesitas un comportamiento diferente cuando no está definida
+    print("INFO: FRONTEND_URL environment variable not set. Only local origins will be allowed by default.")
+
+
+# 4. Configura el Middleware CORS con la lista dinámica
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=allowed_origins,  # Usa la lista que acabas de construir
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"], # Permite todos los métodos (GET, POST, PUT, DELETE, etc.)
+    allow_headers=["*"], # Permite todas las cabeceras
 )
+
 
 # Asegurar que existan las carpetas necesarias (Mantener como estaba)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
