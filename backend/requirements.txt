@@ -7,7 +7,7 @@ pypdf
 scipy
 numpy
 fastapi
-uvicorn
+uvicorn[standard]
 python-multipart
 pytesseract
 pdf2image
